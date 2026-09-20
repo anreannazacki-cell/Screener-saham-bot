@@ -1,1 +1,45 @@
+name: Stock Screener EMA + SuperTrend
 
+"on":
+  schedule:
+    # Jalan tiap 5 menit dari 02:00-08:59 UTC (= 09:00-15:59 WIB), Senin-Jumat.
+    # Script sendiri (screener_once.py) tetap cek jam bursa persis, jadi
+    # eksekusi di luar jam bursa otomatis di-skip (cepat & hemat menit Actions).
+    - cron: "*/5 2-8 * * 1-5"
+  workflow_dispatch: {}   # supaya bisa di-trigger manual dari tab Actions kalau mau tes
+
+permissions:
+  contents: write   # perlu ini supaya bot bisa commit alert_state.json balik ke repo
+
+concurrency:
+  group: stock-screener
+  cancel-in-progress: false   # kalau run sebelumnya masih jalan, run baru antre (bukan dibatalkan)
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run screener
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python screener_once.py
+
+      - name: Simpan status alert (supaya tidak dobel notif)
+        run: |
+          git config user.name "screener-bot"
+          git config user.email "screener-bot@users.noreply.github.com"
+          git add alert_state.json
+          git diff --quiet --cached || git commit -m "update alert state [skip ci]"
+          git push
