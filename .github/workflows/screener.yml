@@ -1,6 +1,6 @@
 name: Stock Screener EMA + SuperTrend
 
-on:
+"on":
   schedule:
     # Jalan tiap 5 menit dari 02:00-08:59 UTC (= 09:00-15:59 WIB), Senin-Jumat.
     # Script sendiri (screener_once.py) tetap cek jam bursa persis, jadi
